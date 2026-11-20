@@ -15,8 +15,32 @@ class Game:
     def __init__(self, drone):
         self.drone = drone
 
+    def forward_dist(self, dist, speed=1.0):
+        p0 = self.drone.get_pose()
+        while not self.drone.crashed:
+            p = self.drone.get_pose()
+            if math.hypot(p["x"] - p0["x"], p["y"] - p0["y"]) >= dist:
+                break
+            self.drone.move_vel(speed, 0.0, 0.0)
+            time.sleep(0.02)
+        self.drone.hover()
+        time.sleep(0.5)
+
     def maze(self, speed=1.5, alt=2.0):
-        pass
+        self.drone.wait4start()
+        self.drone.takeoff(alt)
+        legs = [(13.0, -90.0), (12.0, -90.0), (8.0, 90.0), (10.0, 90.0), (20.0, None)]  # (distance, turn after; CCW+)
+        for i, (dist, turn) in enumerate(legs, 1):
+            print(f"[Maze] Leg {i}: forward {dist} m")
+            self.forward_dist(dist, speed)
+            if self.drone.crashed:
+                print("[Maze] Crashed, mission aborted")
+                return
+            if turn is not None:
+                print(f"[Maze] Turning {'left' if turn > 0 else 'right'} {abs(turn):.0f} deg")
+                self.drone.move_yaw(turn)
+        self.drone.land()
+        print("[Maze] Reached the exit, landed")
 
 class ArenaView:
     def __init__(self, root, drone):
